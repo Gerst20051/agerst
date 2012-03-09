@@ -1,0 +1,22 @@
+<!DOCTYPE html><html lang="en" dir="ltr"><head><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<title>Decode Encrypted String</title>
+<meta name="description" content="Decode Encrypted String!">
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.6/jquery.min.js"></script>
+</head>
+<body>
+<input type="text" id="string" placeholder="String To Decode" style="width:300px"/>
+<input type="submit" id="decode" value="Decode"/>
+<div id="output"></div>
+<script>
+var ip = "184.39.55.218";
+$(document).ready(function(){
+$("#decode").click(function(){
+	$.get("http://"+ip+"/p/php/password/decrypter/decrypt.php", {string:$("#string").val()}, function(response){
+		if (response && response != "0") $("#output").html('Secret: '+response);
+	});
+});
+});
+</script>
+</body>
+</html>

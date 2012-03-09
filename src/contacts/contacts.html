@@ -1,0 +1,251 @@
+<html>
+<head>
+<title>Contacts</title>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.6/jquery.min.js"></script>
+<style>
+body {
+background-color:#272521;
+cursor:default;
+font-family:arial,verdana;
+user-select:none;
+-khtml-user-select:none;
+-moz-user-select:none;
+-webkit-user-select:none;
+}
+
+#main {
+margin:0 auto;
+width:650px;
+}
+
+#main > header {
+font-size:20pt;
+font-weight:bold;
+margin:20px;
+}
+
+#main > header .leftheading {
+color:#a39c82;
+}
+
+#main > header .rightheading {
+color:#fffbef;
+}
+
+article > header {
+background-color:#665f46;
+padding:20px;
+}
+
+article > header aside {
+cursor:pointer;
+float:right;
+font-size:18pt;
+font-weight:bold;
+margin-top:3px;
+}
+
+article > header aside .leftlogo {
+color:#a39c82;
+}
+
+article > header aside .rightlogo {
+color:#fffbef;
+}
+
+article > header label {
+color:#faf9ee;
+font-size:18pt;
+margin-right:6px;
+}
+
+article > header #search {
+background-color:#877c5a;
+border:1px solid #8f886c;
+color:#fffdf6;
+font-size:14pt;
+outline:0;
+padding:4px 6px;
+}
+
+ul#contacts {
+background-color:#363432;
+margin:0;
+padding:10px;
+}
+
+ul#contacts li {
+background-color:#252521;
+cursor:pointer;
+list-style:none;
+margin:10px;
+padding:15px;
+}
+
+ul#contacts li:not(:first-child) {
+margin-top:20px;
+}
+
+ul#contacts li.new {
+display:none;
+}
+
+ul#contacts li .links {
+color:#fffefa;
+cursor:default;
+float:right;
+}
+
+ul#contacts li .links a {
+color:#a09986;
+}
+
+ul#contacts li .details {
+display:none;
+margin-top:10px;
+}
+
+ul#contacts li .name {
+color:#fbfbf7;
+}
+
+ul#contacts li label {
+color:#9d9a86;
+display:block;
+float:left;
+margin-right:6px;
+text-align:right;
+width:50px;
+}
+
+ul#contacts li label:after {
+content: ": ";
+}
+
+ul#contacts li input {
+background-color:transparent;
+border:0;
+color:#faf9f4;
+outline:0;
+padding:0;
+}
+
+ul#contacts li .less {
+display:none;
+}
+
+ul#contacts li .savespan {
+display:none;
+}
+
+footer {
+color:#b2adaa;
+font-size:10pt;
+margin:20px;
+}
+</style>
+</head>
+<body>
+<div id="main">
+<header><span class="leftheading">awesome</span><span class="rightheading">contacts</span></header>
+<article>
+<header>
+<div id="heading">
+<aside id="createcontact"><span class="leftlogo">create</span><span class="rightlogo">contact &#187;</span></aside>
+<label for="search">search:</label><input id="search" type="text" value=""/>
+</div>
+</header>
+<div id="content"><ul id="contacts"></ul></div>
+</article>
+<footer>Social HnS</footer>
+</div>
+<script>
+var aC = {
+contacts: [],
+search: []
+};
+
+function addContact(id,name,number,email) {
+	var html = '<li id="contact-'+id+'">';
+	if (name === true) { var html = '<li id="contact-'+id+'" class="new">'; name="New Contact"; number=""; email=""; }
+	html += '<header><aside class="links"><span class="savespan"><a href="#" class="save">save</a>&nbsp;&nbsp;|&nbsp;&nbsp;</span><a href="#" class="more">more</a><a href="#" class="less">less</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="#" class="delete">delete</a></aside><aside class="name">'+name+'</aside></header>';
+	html += '<div class="details">';
+	html += '<div><label for="name">name</label><input id="name" type="text" value="'+name+'"/></div>';
+	html += '<div><label for="phone">phone</label><input id="phone" type="text" value="'+number+'"/></div>';
+	html += '<div><label for="email">email</label><input id="email" type="email" value="'+email+'"/></div>';
+	html += '</div></li>';
+	return html;
+}
+
+$(document).ready(function(){
+	if (window.location.href.indexOf("localhost") > -1) var ip = "localhost";
+	else var ip = "184.39.55.218";
+	var link = "http://"+ip+"/agerst/contacts/contacts.php";
+		
+	$.getJSON(link, function(response) {
+		aC.contacts = response;
+		var contacts = "";
+		$.each(response, function(i,v) {
+			contacts += addContact(i,v.name,v.number,v.email);
+		});
+		$("ul#contacts").html(contacts);
+	});
+	
+	$("article > header #search").live('keyup',function(){
+		aC.search.splice(0,this.length);
+		if (aC.contacts.length > 0) {
+			$.each(aC.contacts, function(i,v) {
+				if (v.name.indexOf($(this).val()) > -1) aC.search.push(i);
+			});
+			$.each(aC.search, function(i,v) {
+				alert(v);
+			});
+		}
+	});
+
+	$("article > header #createcontact").live('click',function(){
+		// Check for search content and seach results length. if not empty and results = 0 use term as name.
+		var len = aC.contacts.push({"name":"","number":"","email":""});
+		$("ul#contacts").prepend(addContact(len,true)).find("li:first").fadeIn();
+	});
+
+	$("ul#contacts li").live('click',function(){
+		$(this).find('.details').slideToggle('fast');
+		if ($(this).find('.more').is(":visible")) {
+			$(this).find('.more').hide().parent().find('.less').show();
+		} else {
+			$(this).find('.less').hide().parent().find('.more').show();
+		}
+	});
+
+	$("ul#contacts li .details").live('click',function(){
+		return false;
+	});
+
+	$("ul#contacts li .save").live('click',function(){
+		var id = $(this).parents('li').attr('id').substring(8);
+		alert(id);
+		$.post(link, {id:id,name:name,phone:phone,email:email}, function(repsonse) {
+			
+		});
+	});
+
+	$("ul#contacts li .delete").live('click',function(){
+		var name = $(this).parents('li').find('#name').val();
+		if (confirm("Are you sure you want to delete "+name+"?")) alert(name+" deleted :/");
+		return false;
+	});
+
+	$("ul#contacts li input").live('change',function(){
+		$(this).parents('li').find('.savespan').show();
+	});
+	
+	$("ul#contacts li input#name").live('keyup',function(){
+		var name = $(this).val();
+		if (name == "") name = "No Name";
+		$(this).parents('li').find('.name').html(name);
+	});
+});
+</script>
+</body>
+</html>

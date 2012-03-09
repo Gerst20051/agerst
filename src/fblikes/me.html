@@ -1,0 +1,171 @@
+<html>
+<head>
+<title>Your Likes</title>
+<meta name="description" content="Facebook tool to view your connections!">
+<meta property="og:description" content="Facebook tool to view your connections!">
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.6/jquery.min.js"></script>
+<style type="text/css">
+a {text-decoration:none;}
+#options {text-align:center;}
+</style>
+</head>
+<body>
+<div id="options"></div>
+<div id="fb-root"></div>
+<div id="login"></div>
+<div id="test"></div>
+<div id="items"></div>
+<script>
+var user = [
+	"hometown",
+	"location",
+	"sports",
+	"favorite_teams",
+	"favorite_athletes",
+	"languages"
+];
+var options = {
+	likes: ["likes","Likes"],
+	links: ["links","Links"],
+	movies: ["movies","Movies"],
+	music: ["music","Music"],
+	books: ["books","Books"],
+	games: ["games","Games"],
+	activities: ["activities","Activities"],
+	television: ["television","Television"],
+	interests: ["interests","Interests"],
+	phototags: ["photos","Photo Tags"],
+	videotags: ["videos","Video Tags"],
+	events: ["events","Events"],
+	groups: ["groups","Groups"],
+	checkins: ["checkins","Checkins"],
+	friendlists: ["friendlists","Friend Lists"],
+	hometown: ["hometown","Hometown"],
+	location: ["location","Location"],
+	sports: ["sports","Sports"],
+	favoriteteams: ["favorite_teams","Favorite Teams"],
+	favoriteathletes: ["favorite_athletes","Favorite Athletes"],
+	languages: ["languages","Languages"],
+};
+var itemList = new Array();
+var anchor = unescape(self.document.location.hash.substring(1));
+var target = "";
+if (anchor != "") target = options[anchor][0];
+function dataFetch() {
+	document.getElementById('test').innerHTML = "";
+	var term = "Likes";
+	switch (anchor) {
+		case 'events': term="Attending"; break;
+		case 'groups': term="Members"; break;
+		case 'checkins': term="Checkins"; break;
+	}
+	for(i=0,l=itemList.length; i<l; i++) {
+		var newDiv = document.createElement("div");
+		newDiv.id = itemList[i].id;
+		newDiv.innerHTML = itemList[i].name+'&nbsp;&nbsp;-&nbsp;&nbsp;'+itemList[i].category+'&nbsp;&nbsp;-&nbsp;&nbsp;'+itemList[i].created_time;
+		document.getElementById('items').appendChild(newDiv);
+		FB.api('/'+itemList[i].id, function(response) {
+			var newDiv = document.createElement("div");
+			var link = "";
+			if (response.picture) newDiv.innerHTML = '<img src="'+response.picture+'"></img><br/>';
+			if (response.link) {
+				link = response.link;
+			} else {
+				switch (anchor) {
+					case 'events': link="/event.php?eid="; break;
+					case 'groups': link="/group.php?gid="; break;
+				}
+				if (link != "") link = "http://www.facebook.com"+link+response.id;
+			}
+			if (link != "") {
+				newDiv.innerHTML+= '<a href="'+link+'" target="_blank">'+link+'</a><br/>';
+				newDiv.innerHTML+= '<iframe src="http://www.facebook.com/plugins/like.php?href='+link+'&amp;layout=standard&amp;show_faces=true&amp;width=450&amp;action=like&amp;colorscheme=light&amp;height=80" scrolling="no" frameborder="0" style="border:none; overflow:hidden; width:450px; height:80px;" allowTransparency="true"></iframe><br/><br/>';
+			}
+			document.getElementById(response.id).appendChild(newDiv);
+		});
+	}
+}
+function getMyLikes() {
+	document.getElementById('test').innerHTML = "Requesting data from Facebook ...";
+	document.getElementById('items').innerHTML = "";
+	target = options[anchor][0];
+	if (target != "") {
+		if ($.inArray(target,user) > -1) target = "?fields="+target;
+		FB.api('/me/'+target, function(response) {
+			try {
+				if (response.data[0].name) {
+					itemList = response.data;
+					dataFetch();
+				}
+			} catch(e) {}
+		});
+	}
+}
+function init() {
+	var html = "";
+	$.each(options, function(i,v) {
+		if (i!="likes") html += ' - ';
+		html += '<a href="#'+i+'">'+v[1]+'</a>';
+	});
+	$("#options").html(html);
+	$("#options a").click(function(){ anchor=$(this).attr('href').substring(1); getMyLikes(); });
+	if (anchor != "") getMyLikes();
+}
+</script>
+<script src="http://connect.facebook.net/en_US/all.js"></script>
+<script>
+$(document).ready(function(){
+FB.init({
+	appId: '104614016301636',
+	status: true,
+	cookie: true,
+	xfbml: true
+});
+FB.Event.subscribe('auth.sessionChange', function(response) {
+	window.location.reload();
+});
+FB.getLoginStatus(function(response) {
+	if (response.session) {
+		document.getElementById('login').innerHTML = '<a href="#" onclick="FB.logout();">Logout</a><br/>';
+		init();
+	} else {
+		var perms = [
+			"user_likes",
+			"friends_likes",
+			"user_activities",
+			"friends_activities",
+			"user_birthday",
+			"friends_birthday",
+			"user_checkins",
+			"friends_checkins",
+			"user_education_history",
+			"friends_education_history",
+			"user_work_history",
+			"friends_work_history",
+			"user_events",
+			"friends_events",
+			"user_groups",
+			"friends_groups",
+			"user_hometown",
+			"friends_hometown",
+			"user_interests",
+			"friends_interests",
+			"user_location",
+			"friends_location",
+			"user_online_presence",
+			"friends_online_presence",
+			"user_photo_video_tags",
+			"friends_photo_video_tags",
+			"user_relationships",
+			"friends_relationships",
+			"user_religion_politics",
+			"friends_religion_politics",
+			"read_friendlists"
+		];
+		document.getElementById('login').innerHTML = '<fb:login-button show-faces="true" width="200" max-rows="1" perms="'+perms.join()+'"></fb:login-button>';
+		FB.XFBML.parse();
+	}
+});
+});
+</script>
+</html>

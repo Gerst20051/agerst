@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<title>Fib</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<meta http-equiv="content-language" content="en" />
+</head>
+<body>
+<h1>Fib</h1>
+<script>
+function fib() {
+	var i = 0, j = 1;
+	while (true) {
+		yield i;
+		var t = i;
+		i = j;
+		j += t;
+	}
+}
+ 
+var g = fib();
+for (var i = 0; i < 10; i++) {
+	document.write(g.next() + "<br>\n");
+}
+</script>
+</body>
+</html>

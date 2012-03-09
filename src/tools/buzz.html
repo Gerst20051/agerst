@@ -1,0 +1,712 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//HTML 4.01 Transitional//EN">
+<!--
+Google Buzz API browser: an exploration tool for the Google Buzz API
+Copyright 2010 Google; written by Ka-Ping Yee (http://zesty.ca/)
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<style>
+body, input { font-family: helvetica, arial; font-size: 11px; }
+h1 { font-size: 16px; margin: 0 0 4px 0; }
+#navigation { margin: 8px 0 0 0; }
+td { padding: 2px; }
+table.button { height: 22px; min-width: 20px; }
+td.button, td.option { height: 20px; padding: 0 4px;
+    border: 1px solid #bbb; cursor: pointer; white-space: nowrap; }
+td.button { text-align: center; background: #e0e0e0;
+    background: -moz-linear-gradient(center top, #f0f0f0, #d8d8d8); }
+td.button:hover, td.option:hover { background: #f8f8f8;
+    background: -moz-linear-gradient(center top, #f8f8f8, #e8e8e8); }
+table#popup { position: absolute; display: none; }
+td.option { border-top: none; background: #e8e8e8; }
+table.search, table#popup, table#popup td { width: 50px; }
+.symbol { font-family: "lucida sans unicode", "arial unicode ms"; }
+td.path { text-align: right; padding-right: 8px; }
+td.query { padding-left: 6px; }
+.access { display: none; float: right; }
+input { border: 1px solid #bbb; height: 20px; padding: 0 2px; color: #bbb; }
+input.active { color: #000; }
+input#path, input#query { width: 100%; }
+.detail-level tr { vertical-align: center; }
+.detail-level td { padding: 0; }
+#result { padding-top: 8px; }
+#result table.object { border: 1px solid #c8d8f0; }
+#result .content { background: #ffd; border: 1px solid #dda;
+    padding: 4px; margin-bottom: 4px; }
+#result tr { vertical-align: baseline; }
+#result td, #result th { padding: 2px 4px; font-weight: normal; }
+#result img { display: block; border: 1px solid #bbb; }
+#result img.profile { float: left; margin-right: 4px; }
+#result .icon { max-width: 16px; max-height: 16px; }
+#result th { text-align: right; color: #bbb; }
+#result .source { color: #bbb; }
+#result .help th, #result .help td { padding: 0 4px; }
+#result .note { color: #bbb; margin-top: 1em; }
+#result .error { width: 95%; border: 1px solid #c42; padding: 4px; }
+#result .error iframe { width: 100%; border: none; }
+a, a:hover, a:visited, a:link { text-decoration: underline; color: #00f; }
+a.api { color: #c42; }
+.caption strong { color: #000; font-weight: normal; }
+.caption { color: #bbb; position: absolute; bottom: 0; left: 0; padding: 8px; }
+#path-help { padding-right: 3em; }
+#query-help { padding-right: 5em; }
+.spacer td { padding: 0; }
+</style>
+<!--[if lt IE 8]><style>#result tr { vertical-align: top; }</style><![endif]-->
+<script>
+function $(id) {
+  return document.getElementById(id);
+}
+
+function html_escape(text) {
+  return (text + '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').
+      replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function html_unescape(html) {
+  return (html + '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').
+      replace(/&quot;/g, '"').replace(/&amp;/g, '&');
+}
+
+function js_escape(text) {
+  return 'unescape(\'' + escape(text) + '\')';
+}
+
+var simple;
+
+function show_path_field(show) {
+  $('path-cell').style.display = show ? '' : 'none';
+  $('go-cell').style.display = show ? '' : 'none';
+  $('query').style.width = show ? '18em' : '100%';
+  $('query-cell').style.width = show ? '1px' : '';
+  $('query-cell').style.paddingLeft = show ? '6px' : '2px';
+  $('query-cell').style.paddingRight = show ? '2px' : '8px';
+  if ($('path-spacer')) {
+    $('path-spacer').style.display = show ? '' : 'none';
+    $('go-spacer').style.display = show ? '' : 'none';
+    $('query-spacer').style.width = show ? '18em' : '100%';
+    $('path-help-cell').style.display = show ? '' : 'none';
+  }
+}
+
+function set_simple(value) {
+  if (simple !== value) {
+    simple = value;
+    $(simple ? 'simple' : 'detailed').checked = true;
+    $(!simple ? 'simple' : 'detailed').checked = false;
+    show_path_field(true);
+    if (activated['path'] && $('path').value) {
+      load($('path').value);
+    }
+  }
+}
+
+function make_link(url, anchor, path) {
+  var match = url.match(/^https?:\/\/www\.googleapis\.com\/buzz\/v1(\/.*)/);
+  path = path || match && normalize(match[1]);
+  var tag;
+  if (path) {
+    tag = '<a href="#' + html_escape(path) + '" class="api" ' +
+        'onclick="go(' + js_escape(path) + ')">';
+  } else {
+    tag = '<a href="' + html_escape(url) + '" target="_blank">';
+  }
+  if (!anchor) {
+    if (simple && url.match(/^https?:\/\/(www\.)?google\.com\/buzz\//)) {
+      anchor = 'Buzz';
+    } else if (simple && url.match(/^https?:\/\/picasaweb\.google\.com\//)) {
+      anchor = 'Picasa';
+    } else if (simple && url.match(/^https?:\/\/(www\.)?youtube\.com\//)) {
+      anchor = 'YouTube';
+    } else if (simple && url.match(/\.(jpg|jpeg|gif|png)$/)) {
+      anchor = 'Image';
+    } else {
+      anchor = (path || url).replace(/^(.{50}).*(.{10})/, '$1...$2');
+    }
+  }
+  return tag + html_escape(anchor) + '</a>';
+}
+
+function add_links(html) {
+  return html.replace(/https?:([^\s&]|&[^lq]|&l[^t]|&lt[^;]|&q[^u]|&qu[^o]|&quo[^t]|&quot[^;])+/g, function (html_url) {
+    return make_link(html_unescape(html_url));
+  });
+}
+
+function is_empty(object) {
+  if (object === null || object === undefined) {
+    return true;
+  }
+  if (typeof value === 'object' && value.constructor === Array) {
+    return (value.length === 0);
+  }
+  if (typeof object === 'object') {
+    for (var key in object) {
+      return false;
+    }
+    return true;
+  }
+  return false;
+}
+
+function pluralize(count, singular, plural) {
+  return count + ' ' + (count === 1 ? singular : plural);
+}
+
+function html_display(value) {
+  if (typeof value === 'object' && value.constructor === Array) {
+    if (value.length === 0) {
+      return '<span class="empty">(empty)</span>';
+    }
+    var html = '<table class="array" cellpadding=0 cellspacing=0>';
+    for (var i = 0; i < value.length; i++) {
+      html += '<tr><td>&#x2022;</td><td>' + html_display(value[i]) +
+          '</td></tr>';
+    }
+    return html + '</table>';
+  }
+  if (typeof value === 'object') {
+    var leading_keys = [];
+      leading_keys = [
+          'source', 'updated', 'displayName', 'profileUrl', 'thumbnailUrl',
+          'actor', 'content', 'object', 'items', 'links'];
+    var leading_key_set = {};
+    var skip_key_set = {};
+    var ordered_keys = [];
+    var other_keys = [];
+    if (simple) {
+      skip_key_set = {
+          type: 1, published: 1, id: 1, kind: 1,
+          crosspostSource: 1, title: 1, verbs: 1, visibility: 1
+      };
+    }
+    for (var k = 0; k < leading_keys.length; k++) {
+      leading_key_set[leading_keys[k]] = 1;
+      if (leading_keys[k] in value) {
+        ordered_keys.push(leading_keys[k]);
+      }
+    }
+    for (var key in value) {
+      if (!(key in leading_key_set) && !(key in skip_key_set)) {
+        other_keys.push(key);
+      }
+    }
+    other_keys.sort();
+    var keys = ordered_keys.concat(other_keys);
+    if (keys.length === 0) {
+      return '<span class="empty">(empty)</span>';
+    }
+    if (simple && keys.length === 1 && value['data']) {
+      return html_display(value.data);
+    }
+    if (simple && 'source' in value && 'updated' in value) {
+      value.source.title = value.source.title + ' (' +
+          value.updated.replace('T', ' at ').replace(/\.\d\d\dZ$/, ' UTC') +
+          ')';
+      delete value.updated;
+    }
+    var html = '<table class="object" cellpadding=0 cellspacing=0>';
+    for (var i = 0; i < keys.length; i++) {
+      var item = value[keys[i]];
+      var display = '';
+      if (simple) {
+        if (keys[i] === 'actor') {
+          if (item.thumbnailUrl) {
+            display += '<img src="' + html_escape(item.thumbnailUrl) +
+                '" class="profile"> ';
+          }
+          var links = make_link('', 'profile', '/people/' + item.id + '/@self');
+          var match = item.profileUrl.match(/\/profiles\/([\w.]+)/);
+          if (match) {
+            links += ', ' + make_link('', 'activities',
+                '/activities/' + match[1] + '/@self');
+          }
+          display += html_escape(item.name) + ' (' + links + ')';
+          delete item.thumbnailUrl;
+          delete item.profileUrl;
+          delete item.name;
+          delete item.id;
+        } else if (keys[i] === 'content' || keys[i] === 'aboutMe') {
+          display = '<div class="content">' +
+              item.replace('<a ', '<a target="_blank" ') + '</div>';
+          item = {};
+        } else if (keys[i] === 'object') {
+          display = '<div class="content">' +
+              value[keys[i]].content.replace('<a ', '<a target="_blank" ') +
+              '</div>';
+          delete item.content;
+          delete item.links.alternate;
+          delete item.type;
+          if (is_empty(item.links)) {
+            delete item.links;
+          }
+        } else if (keys[i] === 'links') {
+          if (item.liked) {
+            display += ' &#x2022; ' + make_link(item.liked[0].href,
+                pluralize(item.liked[0].count, 'person', 'people')) +
+                ' liked this';
+            delete item.liked;
+          }
+          if (item.replies) {
+            display += ' &#x2022; ' + make_link(item.replies[0].href,
+                pluralize(item.replies[0].count, 'comment', 'comments'));
+            delete item.replies;
+          }
+          if (item.alternate) {
+            display += ' &#x2022; ' + make_link(item.alternate[0].href);
+            delete item.alternate;
+          }
+          if (item.enclosure) {
+            display += ' &#x2022; ' + make_link(item.enclosure[0].href);
+            delete item.enclosure;
+          }
+          if (item.next) {
+            display += ' &#x2022; ' + make_link(item.next[0].href, 'Next page');
+            delete item.next;
+          }
+          if (item.preview) {
+            display +=
+                '<img src="' + item.preview[0].href + '" class="preview">';
+            delete item.preview;
+          }
+          delete item.inReplyTo; // duplicate of item.alternate
+          delete item.hub;
+          delete item.self;
+        } else if (keys[i] === 'source') {
+          display += '<div class="source">' +
+              html_escape(item.title) + '</div>';
+          delete item.title;
+        } else if (keys[i] === 'updated' && item) {
+          display += item.replace('T', ' at ').replace(/\.\d\d\dZ$/, ' UTC');
+          item = {};
+        }
+        if (!is_empty(item)) {
+          display += html_display(item);
+        }
+      } else if (item !== undefined) {
+        display = html_display(item);
+      }
+      if (keys[i] === 'id') {
+        display = make_link('', item, '/people/' + item + '/@self');
+      }
+      if (keys[i] === 'thumbnailUrl' && item) {
+        display += '<img src="' + html_escape(item) + '"> ';
+      }
+      if (display || !simple) {
+        html += '<tr><th>' + html_escape(keys[i]) + '</th><td>' +
+            display + '</td></tr>';
+      }
+    }
+    return html + '</table>';
+  }
+  return add_links(html_escape(value));
+}
+
+var path_history = [];
+var history_next = 0;
+
+function normalize(path) {
+  if (path.match(/^\/?[\w.-]+$/)) {
+    return '/activities/' + path.replace(/^\//, '') + '/@self';
+    return '/people/' + path.replace(/^\//, '') + '/@self';
+  }
+  path = path + '';
+  path = path.replace(/[?&]callback=[^&]*/, '');
+  path = path.replace(/[?&]alt=[^&]*/, '');
+  path = path.replace(/[?&]oauth_[^=]*=[^&]*/, '');
+  path = path.replace(/\?*&*$/, '');
+  path = path.replace(/^#*\/*#*/, '/');
+  path = path.replace(/#.*/, '');
+  return path;
+}
+
+function go(path) {
+  path = path || activated['path'] && $('path').value;
+  if (path) {
+    path = normalize(path);
+    if (path_history[history_next - 1] != path) {
+      path_history.length = history_next;
+      path_history.push(path);
+      history_next = path_history.length;
+    }
+    load(path);
+  }
+}
+
+function load(path) {
+  path = normalize(path);
+  activate('path');
+  $('path').value = path;
+  window.location.hash = path;
+
+  var url = get_oauth_url('https://www.googleapis.com/buzz/v1' + path,
+      {'alt': 'json', 'callback': 'display'})
+
+  $('result').innerHTML = 'Loading ' + html_escape(path) + '...';
+  if (navigator.userAgent.match(/MSIE/)) {
+    $('result').innerHTML += '<div class="note">If you get stuck here, ' +
+        'Google\'s API may be reporting an error; try a browser other ' +
+        'than Internet Explorer to see the error message.</div>';
+  }
+  var requester = $('requester');
+  if (requester) {
+    requester.parentNode.removeChild(requester);
+  }
+  requester = document.createElement('script');
+  requester.id = 'requester';
+  requester.type = 'text/javascript';
+  requester.src = url;
+  requester.onerror = function() {
+    $('result').innerHTML = '<div class="error">The API reported an error:' +
+        '<iframe src="' + html_escape(url) + '"></iframe></div>';
+  }
+  document.getElementsByTagName('head')[0].appendChild(requester);
+}
+
+function fwd() {
+  if (history_next < path_history.length) {
+    history_next += 1;
+    load(path_history[history_next - 1]);
+  }
+}
+
+function back() {
+  if (history_next > 1) {
+    history_next -= 1;
+    load(path_history[history_next - 1]);
+  }
+}
+
+function display(data) {
+  window.onerror = null;
+  $('result').innerHTML = html_display(data);
+  if (typeof data === 'object' && data['error'] &&
+      data['error']['code'] === 404) {
+    $('result').innerHTML +=
+        '<p>Nothing turned up.  Try using the search box on the right.';
+  }
+  if (//typeof data === 'object' && data['kind'] === 'buzz#person' &&
+      $('path').value.match(/^\/people\//)) {
+    $('result').innerHTML +=
+        '<p>This is a user profile.  You can also see ' +
+        make_link('', "this user's activities",
+        $('path').value.replace(/^\/people/, '/activities')) + '.';
+  }
+}
+
+function show(id) {
+  $(id) && ($(id).style.display = '');
+}
+
+function hide(id) {
+  $(id) && ($(id).style.display = 'none');
+}
+
+function search() {
+  if (activated['query'] && $('query').value) {
+    go('/activities/search?q=' + encodeURIComponent($('query').value));
+  }
+}
+
+var activated = {};
+function activate(id) {
+  if (!activated[id]) {
+    $(id).value = '';
+    $(id).className = 'active';
+    $(id).title = '';
+  }
+  activated[id] = true; 
+  show(id + '-help');
+}
+
+// ======================================================= HMAC-SHA1 digests
+
+// Rotate a 32-bit integer left by a given number of shifts.
+function rotate_left(value, shift) {
+  return (value << shift) | (value >>> (32 - shift));
+}
+
+// Truncate a value to a 32-bit integer.
+function int32(value) {
+  return value & 0x0ffffffff;
+}
+
+// Convert a single byte to a character.
+function chr(code) {
+  return String.fromCharCode(code & 0x0ff);
+}
+
+// Get the byte value of a single character.
+function ord(ch) {
+  return ch.charCodeAt(0);
+}
+
+// Repeat a string a given number of times.
+function repeat(count, str) {
+  var result = '';
+  for (var i = 0; i < count; i++) {
+    result += str;
+  }
+  return result;
+}
+
+// Compute the SHA-1 digest of a message.
+function sha1(message) {
+  state = [0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476, 0xc3d2e1f0];
+  var bytes = [];
+  for (var i = 0; i < message.length; i++) {
+    bytes.push(message.charCodeAt(i));
+  }
+  bytes.push(0x80);
+  while (bytes.length % 64 !== 56) {
+    bytes.push(0);
+  }
+  var words = [];
+  for (var i = 0; i < bytes.length; i += 4) {
+    words.push(
+        bytes[i] << 24 | bytes[i + 1] << 16 | bytes[i + 2] << 8 | bytes[i + 3]);
+  }
+  words.push(message.length >> 29);
+  words.push(int32(message.length << 3));
+
+  for (var b = 0; b < words.length; b += 16) {
+    var W = words.slice(b, b + 16);
+    for (var i = 16; i < 80; i++) {
+      W.push(rotate_left(W[i - 3] ^ W[i - 8] ^ W[i - 14] ^ W[i - 16], 1));
+    }
+    var A = state[0], B = state[1], C = state[2], D = state[3], E = state[4];
+    for (var i = 0; i < 80; i++) {
+      var F, K;
+      if (i < 20) {
+        F = (B & C) | (~B & D);
+        K = 0x5a827999;
+      } else if (i < 40) {
+        F = B ^ C ^ D;
+        K = 0x6ed9eba1;
+      } else if (i < 60) {
+        F = (B & C) | (B & D) | (C & D);
+        K = 0x8f1bbcdc;
+      } else {
+        F = B ^ C ^ D;
+        K = 0xca62c1d6;
+      }
+      var temp = int32(rotate_left(A, 5) + F + E + K + W[i]);
+      E = D;
+      D = C;
+      C = rotate_left(B, 30);
+      B = A;
+      A = temp;
+    }
+
+    state[0] = int32(state[0] + A);
+    state[1] = int32(state[1] + B);
+    state[2] = int32(state[2] + C);
+    state[3] = int32(state[3] + D);
+    state[4] = int32(state[4] + E);
+  }
+
+  var digest = '';
+  for (var i = 0; i < 5; i++) {
+    digest += chr(state[i] >> 24) + chr(state[i] >> 16) + chr(state[i] >> 8) +
+        chr(state[i]);
+  }
+  return digest;
+}
+
+// Compute an HMAC for the given key and message, using SHA-1.
+function hmac_sha1(key, message) {
+  if (key.length > 64) {
+    key = sha1(key);
+  }
+  var opad = '', ipad = '';
+  for (var i = 0; i < 64; i++) {
+    var code = key.charCodeAt(i) || 0;
+    ipad += chr(code ^ 0x36);
+    opad += chr(code ^ 0x5c);
+  }
+  return sha1(opad + sha1(ipad + message));
+}
+
+// ======================================================== OAuth signatures
+
+// This token and secret are associated with a Google account that has no
+// profile information and no friends.  To get a token like this, log in to
+// Google with a dummy account and carry out the OAuth token request procedure
+// described at http://code.google.com/apis/accounts/docs/OAuth.html.
+// Be careful: if you chagne this to a token you get by logging in as
+// yourself, this page will show everything that's visible to you.
+var TOKEN = '1/S2eVjgDkkz8PAtMCcq9-wL4Q_ZvW0ypJZ8GqsJOV9JY';
+var TOKEN_SECRET = '1lC/gkCODUPTTW+XZZVgV4E+';
+
+// Encode a string with OAuth parameter encoding (OAuth Core 1.0, Section 5.1).
+function encode(param) {
+  function escape(ch) {
+    var HEX = '0123456789ABCDEF';
+    return '%' + HEX.charAt(ord(ch) >> 4) + HEX.charAt(ord(ch) & 0xf);
+  }
+  return param.replace(/([^a-zA-Z0-9._~-])/g, escape);
+}
+
+// Encode a string with base-64 encoding.
+function base64(str) {
+  var B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+  var result = '';
+  for (var i = 0; i < str.length; i += 3) {
+    var a = str.charCodeAt(i) || 0;
+    var b = str.charCodeAt(i + 1) || 0;
+    var c = str.charCodeAt(i + 2) || 0;
+
+    var w = a >> 2;
+    var x = (a & 0x3) << 4 | b >> 4;
+    var y = (b & 0xf) << 2 | c >> 6;
+    var z = (c & 0x3f);
+
+    if (i + 1 >= str.length) {
+      y = z = 64;
+    } else if (i + 2 >= str.length) {
+      z = 64;
+    }
+    result += B64.charAt(w) + B64.charAt(x) + B64.charAt(y) + B64.charAt(z);
+  }
+  return result;
+}
+
+// Normalize request parameters for signing (OAuth Core 1.0, Section 9.1.1).
+function normalize_params(params) {
+  var keys = [];
+  for (var key in params) {
+    keys.push(key);
+  }
+  keys.sort();
+  var pairs = [];
+  for (var i = 0; i < keys.length; i++) {
+    pairs.push(encode(keys[i]) + '=' + encode(params[keys[i]]));
+  }
+  return pairs.join('&');
+}
+
+// Sign a request (OAuth Core 1.0, Sections 8 and 9).
+function sign_request(method, url, params) {
+  params.oauth_nonce = '' + (Math.random() * (1<<30) >> 0);
+  params.oauth_timestamp = '' + int32((new Date()).getTime()/1000);
+  params.oauth_signature_method = 'HMAC-SHA1';
+  message = [encode(method), encode(url),
+      encode(normalize_params(params))].join('&');
+  key = [encode('anonymous'), encode(TOKEN_SECRET)].join('&');
+  params.oauth_signature = base64(hmac_sha1(key, message))
+}
+
+// Add OAuth parameters and signature to a URL (OAuth Core 1.0, Section 5.2).
+function get_oauth_url(url, params) {
+  params = params || {};
+  params.oauth_consumer_key = 'anonymous';
+  params.oauth_token = TOKEN;
+  sign_request('GET', url, params);
+  var separator = url.match(/\?/) ? '&' : '?';
+  for (var key in params) {
+    url += separator + encode(key) + '=' + encode(params[key]);
+    separator = '&';
+  }
+  return url;
+}
+</script>
+
+<div style="float: right">
+<a href="#" onclick="window.location = window.location.href.replace(/#.*/, '')">Start over</a> &#xb7;
+<a href="http://zestyping.livejournal.com/257746.html">Help</a> &#xb7;
+<a href="http://zestyping.livejournal.com/257746.html">Discuss</a> &#xb7;
+<a href="http://zesty.ca/facebook">Facebook API browser</a>
+</div>
+
+<h1>What does Google Buzz publish about you and your friends?</h1>
+
+Any information you see below is visible to anyone on the Internet
+through normal use of the
+<a href="http://code.google.com/apis/buzz">Google Buzz API</a>.
+Websites or applications that you authorize might see more.
+<a href="http://mail.google.com/support/bin/topic.py?topic=27291">Learn more</a>
+about how to control what you share.
+
+<table class="detail-level" align="right"><tr>
+<td>&nbsp;<input type="radio" name="detail-level" id="simple" checked
+    onclick="set_simple(true)"></td>
+<td><label for="simple" onclick="set_simple(true)">Simple</label></td>
+<td>&nbsp;<input type="radio" name="detail-level" id="detailed"
+    onclick="set_simple(false)"></td>
+<td><label for="detailed" onclick="set_simple(false)">Detailed</label></td>
+</tr></table>
+
+<table id="navigation" width="100%" cellspacing=0 cellpadding=0 border=0><tr>
+<td width=1><table cellspacing=0 cellpadding=0 class="button"><tr>
+<td class="symbol button" onclick="back()">&#x25c0;</td></tr></td></table></td>
+<td width=1><table cellspacing=0 cellpadding=0 class="button"><tr>
+<td class="symbol button" onclick="fwd()">&#x25b6;</td></tr></td></table></td>
+<td class="path" id="path-cell"><input id="path"
+    value="Google profile name or ID" onfocus="activate('path')"></td>
+<td width=1 id="go-cell"><table cellspacing=0 cellpadding=0 class="button"><tr>
+<td class="button" onclick="go()">Go</td></tr></td></table></td>
+<td class="query" id="query-cell"><input id="query"
+    value="Names, usernames, or keywords" onfocus="activate('query')"></td>
+<td width=1>
+<table cellspacing=0 cellpadding=0 class="search button"><tr>
+<td class="button" id="search" onclick="search()">Search</td></tr></td></table>
+</td></tr></table>
+
+<div id="result">
+<table width="100%" cellspacing=0 cellpadding=0 class="help"><tr>
+<td width=1><table width=40 cellspacing=0 cellpadding=0><tr><td></td></tr></table></td>
+<td id="path-spacer"></td>
+<td id="go-spacer" width=1 style="width: 24px"></td>
+<td id="query-spacer" width=1 style="width: 18em"></td>
+<td width=1 style="width: 46px"></td>
+</tr><tr>
+<td></td>
+<td id="path-help-cell" colspan=2><div id="path-help" style="display: none">
+To find your Google profile name or numeric ID, go to your
+<a href="https://www.google.com/profiles/me" target="_blank">Google profile</a>
+and look at the URL bar in your browser.
+Your profile name or numeric ID
+will appear at the end of the URL after "profiles/".
+<p>
+If you don't have a Google profile,
+try searching for keywords in the box on the right.
+</div></td>
+<td colspan=3><div id="query-help" style="display: none">
+Try entering your name, a Twitter username,
+or keywords to search for in posts.
+</div></td>
+</tr></table>
+<div class="caption"><strong>About the Google Buzz API browser:</strong>
+This is a JavaScript program running entirely inside your web browser.
+The server hosting this page doesn't process, store, or transfer
+the information retrieved through the Google Buzz API;
+your browser is communicating directly with Google Buzz.
+View the source of this page to see the program.
+</div>
+
+<script>
+hide('search_user');
+$('query').onkeydown = function(event) {
+  event = event || window.event;
+  if ((event['keyCode'] || event['which']) === 13) search();
+}
+$('path').onkeydown = function(event) {
+  event = event || window.event;
+  if ((event['keyCode'] || event['which']) === 13) go();
+}
+set_simple(true);
+if (window.location.hash) {
+  go(window.location.hash);
+}
+</script>

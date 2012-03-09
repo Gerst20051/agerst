@@ -1,0 +1,1 @@
+javascript:(function(){function checkFrames(w){try{var a=w.document.getElementsByTagName('input');for(var i=0;i<a.length;i++){if(a[i].type&&a[i].type=='checkbox'&&a[i].checked===false&&a[i].disabled!=1)a[i].click()}}catch(e){}if(w.frames&&w.frames.length>0){for(var i=0;i<w.frames.length;i++){var b=w.frames[i];checkFrames(b)}}}checkFrames(window)})();

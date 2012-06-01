@@ -1,6 +1,6 @@
 <?php
 header('Access-Control-Allow-Origin: *');
-$api_dev_key = '5b76f2366bad23eff2f23b781b9389f5';
+$api_dev_key = '';
 $api_user_name = urlencode('gerst20051');
 $api_user_password = urlencode('');
 $api_paste_name = urlencode('Server IP Address');
@@ -27,7 +27,6 @@ preg_match('/<paste_key(.*)?>(.*)?<\/paste_key>/', $xml, $paste_key);
 preg_match('/<paste_title(.*)?>(.*)?<\/paste_title>/', $xml, $paste_title);
 
 foreach ($paste_title as $key=>$value) {
-	echo $value;
 	if ($value == "Server IP Address") {
 		echo 'http://pastebin.com/raw.php?i='.$paste_key[$key];
 	}

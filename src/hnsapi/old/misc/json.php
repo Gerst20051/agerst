@@ -1,13 +1,26 @@
 <?php
 header('Content-Type: text/javascript; charset=utf8');
-$ref = (isset($_SERVER['HTTP_REFERER'])) ? $_SERVER['HTTP_REFERER'] : '';
+header('Access-Control-Allow-Origin: *');
 
-if (isset($ref) && !empty($ref)) {
-header('Access-Control-Allow-Origin: "*"');
-
+function error($msg,$json=false) {
+	if ($json) print_r('('.json_encode(array("error"=>$msg)).');');
+	else $final['error'] = $msg;
 }
 
+$ref = (isset($_SERVER['HTTP_REFERER']))?$_SERVER['HTTP_REFERER']:'';
+if (isset($ref) && !empty($ref) && isset($_GET['apikey']) && !empty($_GET['apikey'])) {
+	require 'api_auth.php';
+	$allow = true;
+	foreach($auth as $key => $referer) {
+		if ($_GET['apikey'] == $key && strpos($ref,$referer) !== false) { $allow = true; break; }
+	}
+	if (!$allow) die(error("Bad API Key!",true));
+} else {
+	if (!isset($_GET['apikey']) || empty($_GET['apikey'])) die(error("API Key Error!",true));
+	elseif (!isset($ref) || empty($ref)) die(error("HTTP Referer Error!",true));
+}
 $mysql = mysql_connect('localhost','root','');
+if (!$mysql) die(error(mysql_error(),true));
 mysql_select_db('members');
 
 if (isset($_GET['id']) && !empty($_GET['id'])) $ID = $_GET['id'];
@@ -16,9 +29,9 @@ if (isset($_GET['callback']) && !empty($_GET['callback'])) $CALLBACK = $_GET['ca
 
 $query = 'SELECT u.user_id';
 
-if (isset($FIELDS) && $FIELDS != "user_id") {
-	$search = array("user_id,","first_name","middle_name","last_name");
-	$replace = array("","firstname","middlename","lastname");
+if (isset($FIELDS)) {
+	$search = array("user_id","user_id,","first_name","middle_name","last_name");
+	$replace = array("u.user_id","","firstname","middlename","lastname");
 	$fields = str_replace($search,$replace,$FIELDS);
 	$query .= ','.$fields;
 } else $query .= ', username, last_login, date_joined, firstname, middlename, lastname, email, gender, birth_month, birth_day, birth_year, hometown, current_city, community, hobbies, hits, logins, rank, xrank, xratings, voters, friends, website, status, mood, default_image, setting_language';
@@ -39,7 +52,7 @@ if (isset($ID)) {
 	} else $query .= ' WHERE u.user_id = '.$ID;
 }
 
-$res = mysql_query($query) or die(mysql_error());
+$res = mysql_query($query) or die(error(mysql_error(),true));
 
 while ($row = mysql_fetch_assoc($res)) {
 	for ($i=0; $i<mysql_num_fields($res); $i++) {
@@ -51,7 +64,12 @@ while ($row = mysql_fetch_assoc($res)) {
 	$rows[] = $row;
 }
 
-$json = '('.json_encode($rows).');';
+$final = array(
+	"data"=>$rows,
+	"error"=>false
+);
+
+$json = '('.json_encode($final).');';
 print_r($CALLBACK.$json);
-mysql_close($mysql);
+mysql_close();
 ?>

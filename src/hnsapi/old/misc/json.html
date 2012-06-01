@@ -88,7 +88,7 @@ function getJSON() {
 
 $("#search").keyup(function() {
 	if ($.trim(this.value) != "") {
-		$.ajax({type:"GET",url:"suggest2.php",data:{q:this.value},dataType:"html",success:function(responseData) {
+		$.ajax({type:"GET",url:"suggest2.php",data:{q:this.value,apikey:"hnsap"},dataType:"html",success:function(responseData) {
 			if (responseData) {
 				$("#suggestcontainer").show();
 				$("#suggest").html(responseData);

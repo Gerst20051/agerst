@@ -28,6 +28,7 @@ header h1:after{ content: "Homenet Spaces API UI"; color: rgb(63,63,63); }
 .member ul { list-style: none; margin: 0; padding: 0; }
 .member > div { white-space: pre-wrap; word-wrap: break-word; }
 .member img { border-radius: 6px; -moz-border-radius: 6px; -opera-border-radius: 6px; -webkit-border-radius: 6px; clear: both; margin-right: 10px; margin-top: 4px; width: 100px; }
+#hidden{ display: none; }
 </style>
 </head>
 <body>
@@ -70,14 +71,25 @@ header h1:after{ content: "Homenet Spaces API UI"; color: rgb(63,63,63); }
 <div class="submit"><input type="submit" value="Get JSON" id="getJSON"></div>
 </div>
 <div id="output"></div>
+<div id="hidden"></div>
 <script>
 var dC = {
-	"domain": "http://184.39.139.31/",
-	"dir": "homenetspaces/",
+	"protocol": window.location.protocol+"//",
+	"domain": "74.235.33.133",
+	"dir": "/homenetspaces/",
 	"url": "json.php",
 	"fields": [],
 	"json": {}
 };
+
+$.ajax({
+	url: "http://agerst.webs.com/hnsapi/ip.html",
+	type: "GET",
+	dataType: "html",
+	success: function(result) {
+		alert(result);
+	}
+});
 
 $(document).ready(function() {
 function outputWidth() {
@@ -85,28 +97,30 @@ function outputWidth() {
 }
 
 function getJSON() {
-	$.ajax({type:"GET",url:dC.domain+dC.dir+dC.url,dataType:"jsonp",data:{id:$.trim($("#user_id").val()),fields:encodeURI(dC.fields.join().toLowerCase().replace(/\s/g,"_"))},success:function(responseData) {
+	$.ajax({type:"GET",url:dC.protocol+dC.domain+dC.dir+dC.url,dataType:"jsonp",timeout:5000,data:{id:$.trim($("#user_id").val()),fields:encodeURI(dC.fields.join().toLowerCase().replace(/\s/g,"_")),apikey:"hnspi"},success:function(responseData) {
 		if (responseData) {
-			dC.json = responseData;
-			outputData();
+			if (!responseData.error) {
+				dC.json = responseData;
+				outputData();
+			} else $("#output").html("Error: "+responseData.error);
 		}
-	},failure:function() {
-		$("#output").html("Couldn't Connect To Host");
+	},error:function(data) {
+		$("#output").html("Connection Failed! | Code: "+data.status);
 	}});
 }
 
 function outputData() {
-	var data = "";
-	$.each(dC.json, function(i) {
+	var data="",ds=dC.json.data;
+	$.each(ds, function(i,v) {
 		data += '<div class="member">';
 		if (dC.fields.indexOf('Default Image') > -1 || dC.fields.length == 0) {
 			if (dC.fields.indexOf('Username') > -1 || dC.fields.length == 0) {
-				if (dC.json[i].default_image != "") data += '<img src="' + dC.domain + 'uploads/' + dC.json[i].username + '/images/thumb/' +  dC.json[i].default_image + '" id="defaultuserimage" title="' +  dC.json[i].firstname + ' ' +  dC.json[i].lastname + '" />';
-				else data += '<img src="' + dC.domain + dC.dir + 'i/mem/default.jpg" alt="" id="defaultuserimage" />';
+				if (ds[i].default_image != "") data += '<img src="' + dC.protocol + dC.domain + '/uploads/' + ds[i].username + '/images/thumb/' +  ds[i].default_image + '" id="defaultuserimage" title="' +  ds[i].firstname + ' ' +  ds[i].lastname + '" />';
+				else data += '<img src="' + dC.protocol + dC.domain + dC.dir + 'i/mem/default.jpg" alt="" id="defaultuserimage" />';
 			}
 		}
 		data += '<ul>';
-		$.each(dC.json[i], function(key,value) {
+		$.each(ds[i], function(key,value) {
 			data += '<li>' + key.replace("_"," ").capitalize() + ': ' + value + '</li>';
 		});
 		data += '</ul></div>';
@@ -118,14 +132,14 @@ function outputData() {
 
 $("#search").keyup(function() {
 	if ($.trim(this.value) != "") {
-		$.ajax({type:"GET",url:dC.domain+dC.dir+"suggest2.php",data:{q:this.value},dataType:"html",success:function(responseData) {
+		$.ajax({type:"GET",url:dC.protocol+dC.domain+dC.dir+"suggest2.php",data:{q:this.value,apikey:"hnsapi"},dataType:"html",timeout:5000,success:function(responseData) {
 			if (responseData) {
 				$("#suggestcontainer").show();
 				$("#suggest").html(responseData);
 			}
-		},failure:function() {
+		},error:function(data) {
 			$("#suggestcontainer").show();
-			$("#suggest").html("Couldn't Connect To Host");
+			$("#suggest").html("Connection Failed! | Code: "+data.status);
 		}});
 	} else $("#suggestcontainer").hide();
 });

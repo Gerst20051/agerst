@@ -1,6 +1,58 @@
 <?php
+header('Access-Control-Allow-Origin: *');
 session_start();
-header('Access-Control-Allow-Origin: http://agerst.webs.com/');
+$ref = (isset($_SERVER['HTTP_REFERER']))?$_SERVER['HTTP_REFERER']:'';
+if (isset($ref) && !empty($ref) && isset($_GET['apikey']) && !empty($_GET['apikey'])) {
+	$allow = false;
+	$auth = array(
+		"hnsapi"=>"agerst.webs.com",
+		"hnsapi"=>"localhost"
+	);
+	foreach($auth as $key => $referer) {
+		if ($_GET['apikey'] == $key && strpos($ref,$referer) !== false) { $allow = true; break; }
+	}
+	if (!$allow) die('Bad API Key!');
+}
+
+// OR
+
+/*
+$ref = (isset($_SERVER['HTTP_REFERER']))?$_SERVER['HTTP_REFERER']:'';
+if (isset($ref) && !empty($ref) && isset($_GET['apikey']) && !empty($_GET['apikey'])) {
+	require 'api_auth.php';
+	foreach($auth as $key => $referer) {
+		if ($_GET['apikey'] == $key && strpos($ref,$referer) !== false) { header('Access-Control-Allow-Origin: *'); break; }
+	}
+}
+*/
+
+function strpos_array($haystack,$needles) {
+	if (is_array($needles)) {
+		foreach ($needles as $str) {
+			if (is_array($str)) $pos = strpos_array($haystack,$str);
+			else $pos = strpos($haystack,$str);
+			if ($pos !== FALSE) return $pos;
+		}
+	} else return strpos($haystack,$needles);
+	/*
+	} elseif (is_array($haystack)) {
+	
+	} else return strpos($haystack,$needles);
+	*/
+}
+
+function search_array($needle,$haystacks) {
+	$found = false;
+	foreach ($haystacks as $key => $haystack) {
+		if (!(strpos($haystack,$needle) === false)) {
+			$found = $key;
+			break;
+		}
+	}
+	return ($found);
+}
+
+// echo strpos_array('This is a test', array('test', 'drive')); // Output is 10
 
 /*
 require ("lang.inc.php");

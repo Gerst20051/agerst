@@ -1,30 +1,17 @@
 <?php
-header('Access-Control-Allow-Origin: *');
 session_start();
 $ref = (isset($_SERVER['HTTP_REFERER']))?$_SERVER['HTTP_REFERER']:'';
 if (isset($ref) && !empty($ref) && isset($_GET['apikey']) && !empty($_GET['apikey'])) {
+	require 'api_auth.php';
 	$allow = false;
-	$auth = array(
-		"hnsapi"=>"agerst.webs.com",
-		"hnsapi"=>"localhost"
-	);
 	foreach($auth as $key => $referer) {
-		if ($_GET['apikey'] == $key && strpos($ref,$referer) !== false) { $allow = true; break; }
+		if ($_GET['apikey'] == $key && strpos($ref,$referer) !== false) { header('Access-Control-Allow-Origin: *'); $allow = true; break; }
 	}
 	if (!$allow) die('Bad API Key!');
+} else {
+	if (!isset($_GET['apikey']) || empty($_GET['apikey'])) die("API Key Error!");
+	elseif (!isset($ref) || empty($ref)) die("HTTP Referer Error!");
 }
-
-// OR
-
-/*
-$ref = (isset($_SERVER['HTTP_REFERER']))?$_SERVER['HTTP_REFERER']:'';
-if (isset($ref) && !empty($ref) && isset($_GET['apikey']) && !empty($_GET['apikey'])) {
-	require 'api_auth.php';
-	foreach($auth as $key => $referer) {
-		if ($_GET['apikey'] == $key && strpos($ref,$referer) !== false) { header('Access-Control-Allow-Origin: *'); break; }
-	}
-}
-*/
 
 function strpos_array($haystack,$needles) {
 	if (is_array($needles)) {

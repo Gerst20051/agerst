@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Test Pacer</title>
+<script src="http://code.jquery.com/jquery-latest.js"></script>
+<style>
+body {
+font:12pt arial #000;
+}
+
+#main {
+margin:0 auto;
+width:70%;
+}
+
+#header {
+margin:12px 0;
+}
+
+.title {
+font-size:50pt;
+}
+
+textarea {
+height:260px;
+width:100%;
+}
+
+#panel {
+display:none;
+font-size:30pt;
+height:300px;
+margin-top:10px;
+}
+
+#end {
+color:#f00;
+display:none;
+font-size:100pt;
+font-weight:bold;
+}
+</style>
+</head>
+<body>
+<div id="main">
+<div id="header"><span class="title">Test Pacer</span></div>
+<div id="inputs">
+<input type="text" id="numq_input" placeholder="Number of Questions"/>
+<input type="text" id="time_input" placeholder="Amount of Time (Minutes)"/>
+<input type="button" id="start" value="Begin!"/>
+</div>
+<div id="panel">
+<div>Current Question: <span id="question_output"></span></div>
+<div>Time Remaining: <span id="time_output"></span></div>
+<div>Question Pace: <span id="pace_output"></span></div>
+<div id="end">Test Over</div>
+</div>
+</div>
+<script>
+var numq = 0, question = 1, time = 0, time_remaining = 0, pace = 0, questionInt, timeInt;
+
+function two(x) {
+	return ((x > 9) ? "" : "0") + x;
+}
+
+function getTime(s) {
+	var m = Math.floor(s / 60), h = Math.floor(m / 60), d = Math.floor(h / 60);
+	if (d > 0) t = d + ":" + two(h % 60) + ":" + two(m % 60) + ":" + two(s % 60);
+	else if (h % 60 > 0) t = (h % 60) + ":" + two(m % 60) + ":" + two(s % 60);
+	else t = (m % 60) + ":" + two(s % 60);
+	return t;
+}
+
+function getBigTime(s) {
+	var m = Math.floor(s / 60), h = Math.floor(m / 60), d = Math.floor(h / 60);
+	if (d > 0) t = d + ":" + two(h % 60) + ":" + two(m % 60) + ":" + two(s % 60);
+	else if (h % 60 > 0) t = (h % 60) + ":" + two(m % 60) + ":" + two(s % 60);
+	else t = (m % 60) + ":" + two(s % 60);
+	return t;
+}
+
+function updateQuestion(){
+	if (question < numq) $("#question_output").text(++question);
+	else clearInterval(questionInt);
+}
+
+function updateTime(){
+	if (time > 0) $("#time_output").text(getTime(--time));
+	else {
+		clearInterval(timeInt);
+		$("#end").show();
+	}
+}
+
+$(document).ready(function(){
+$("#start").click(function(){
+	numq = 0, question = 1, time = 0, time_remaining = 0, pace = 0;
+	$("#end").hide();
+	if (questionInt != "undefined") clearInterval(questionInt);
+	if (timeInt != "undefined") clearInterval(timeInt);
+	if ($.trim($("#numq_input").val()).length > 0 && $.trim($("#time_input").val()).length > 0) {
+		numq = $.trim($("#numq_input").val());
+		time = $.trim($("#time_input").val()) * 60;
+		time_remaining = time;
+		pace = (time) / numq;
+		$("#question_output").text("1");
+		$("#time_output").text(getTime(time));
+		$("#pace_output").text(getTime(pace));
+		questionInterval = setInterval(updateQuestion, pace*1000);
+		timeInt = setInterval(updateTime, 1000);
+		$("#panel").show();
+	}
+});
+});
+</script>
+</body>
+</html>

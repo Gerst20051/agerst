@@ -35,13 +35,6 @@ margin-top:10px;
 height:300px;
 overflow-x:hidden;
 overflow-y:auto;
-white-space:-hp-pre-wrap; /* HP Printers */
-white-space:-pre-wrap; /* Opera 4-6 */
-white-space:-o-pre-wrap; /* Opera 7 */
-white-space:-moz-pre-wrap; /* Mozilla */
-white-space:pre; /* CSS 2.0 */
-white-space:pre-wrap; /* CSS 2.1 */
-white-space:pre-line; /* CSS 3.0 */
 width:100%;
 word-wrap:break-word;
 }
@@ -50,7 +43,7 @@ word-wrap:break-word;
 <body>
 <div id="main">
 <div id="header"><span class="title">ASCII / Binary Converter</span></div>
-<textarea id="input"></textarea>
+<textarea id="input">01011001011011110111010100100000011000110110000101101110001000000110001101101111011011100111011001100101011100100111010000100000010000010101001101000011010010010100100100100000011101000110111100100000010000100110100101101110011000010111001001111001001000000110111101110010001000000100001001101001011011100110000101110010011110010010000001110100011011110010000001000001010100110100001101001001010010010010111000100000010010100111010101110011011101000010000001110100011110010111000001100101001000000110100101101110001000000111010001101000011001010010000001100010011011110111100000100000011000010110001001101111011101100110010100101110</textarea>
 <div id="panel"><div id="output"></div></div>
 </div>
 <script>
@@ -283,6 +276,7 @@ $("#input").keyup(function(){
 	if (0 < $.trim($("#input").val()).length) translate();
 	else { $("#input").val(''); updateOutput(); }
 });
+translate();
 });
 </script>
 </body>

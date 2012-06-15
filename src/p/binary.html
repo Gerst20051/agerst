@@ -250,7 +250,7 @@ function updateOutput() {
 function translate() {
 	var string = $.trim($("#input").val()), output = "";
 	string.replace(/\s+/g," ").replace("   "," ").replace("  "," ");
-	if (!/\D/.test(string)) {
+	if (!/\D /.test(string)) {
 		var index = string.indexOf(" ");
 		while (-1 < index) {
 			sting = stringe.replace(" ","");

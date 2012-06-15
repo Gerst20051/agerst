@@ -251,7 +251,7 @@ function translate() {
 	var string = $.trim($("#input").val()), output = "";
 	string.replace(/\s+/g," ").replace("   "," ").replace("  "," ");
 	if (!/\D /.test(string)) {
-		string = string.replace(" ","");
+		string = string.replace(/\s+/g,"");
 		var reps = string.length/8, chars = [];
 		for (var i = 0; i < reps; i++) {
 			chars[i] = string.substring(i*8,i*8+8);

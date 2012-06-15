@@ -64,7 +64,7 @@ function updateOutput() {
 function countWords() {
 	var input,found,item=[];
 	words=[];
-	input=$("#input").val().split(" ");
+	input=$("#input").val().replace(/[^a-zA-Z '0-9"]+/g," ").replace("   "," ").replace("  "," ").split(" ");
 	total=0;
 	$.each(input,function(i,v){
 		if (v != "") {

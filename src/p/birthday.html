@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<title>Happy Birthday</title>
+<meta http-equiv="content-type" content="text/html;charset=utf-8"/>
+<meta http-equiv="content-language" content="en"/>
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.6/jquery.min.js"></script>
+<script type="text/javascript" src="http://www.webtoolkit.info/djs/webtoolkit.base64.js"></script>
+<script type="text/javascript" src="https://raw.github.com/kvz/phpjs/master/functions/json/json_encode.js"></script>
+<style>
+body{
+-webkit-touch-callout: none;
+overflow:hidden;
+user-select: none;
+-khtml-user-select: none;
+-moz-user-select: none;
+-ms-user-select: none;
+-webkit-user-select: none
+}
+body.wish{background-color:#000;cursor:default}
+#wish{display:none}
+#wishheader{color:#fff;font-size:100pt}
+#wishname{color:#999;font-size:90pt;padding-top:45px}
+#wishsender{bottom:50px;color:#666;font-size:75pt;right:70px;position:absolute}
+</style>
+</head>
+<body>
+<div id="splash">
+<h1>Enter Name and Birthdate</h1>
+<input id="name" type="text" placeholder="Andrew Gerst"/>
+<input id="birthday" type="text" placeholder="8-12-1993"/>
+<input id="sender" type="text" placeholder="Sender's Name"/>
+<input id="go" type="button" value="Go!"/><br/><br/>
+<div>Separate Birthdate With Dashes</div>
+</div>
+<div id="wish">
+<div id="wishheader"></div>
+<div id="wishname"></div>
+<div id="wishsender"></div>
+</div>
+<script>
+function getHash(){return decodeURIComponent(window.location.hash.substring(1))}
+function clearHash(){window.location.replace("#")}
+function setHash(hash){window.location.replace("#"+encodeURI(hash))}
+function setTitle(name){document.title=name}
+
+String.prototype.plural = function(p){
+	return this.replace(/#/g, p.toString()).replace(/%/g, Math.floor(p/10)%10 === 1 ? "th" : ["st", "nd", "rd"][p%10-1] || "th");
+};
+
+Date.daysBetween = function(date1, date2){
+	var one_day = 1000*60*60*24, date1_ms = date1.getTime(), date2_ms = date2.getTime(), difference_ms = date2_ms-date1_ms;
+	return Math.round(difference_ms / one_day); 
+};
+
+$(document).ready(function(){
+var config = {
+	name: "",
+	birthday: "",
+	sender: ""
+};
+$("#go").click(function(){
+	var name = $.trim($("#name").val()), birthday = $.trim($("#birthday").val()), sender = $.trim($("#sender").val());
+	if (0 < name.length && 0 < birthday.length) {
+		config.name = name;
+		config.birthday = birthday;
+		config.sender = sender;
+		setHash(Base64.encode(json_encode(config)));
+		doWish();
+	}
+});
+if (getHash().length > 0) {
+	var hash = $.parseJSON(Base64.decode(getHash()));
+	var name = $.trim(hash.name), birthday = $.trim(hash.birthday);
+	if (0 < name.length && 0 < birthday.length) {
+		config = hash;
+		doWish();
+	}
+}
+function doWish(){
+	var days = Date.daysBetween(new Date(config.birthday), new Date()), age = Math.floor(days/365);
+	$("#splash").hide();
+	$("body").addClass("wish");
+	$("#wishheader").text("Happy #% Birthday!".plural(age));
+	$("#wishname").text(config.name);
+	setTitle('Happy Birthday ' + config.name + '!');
+	if (0 < config.sender.length) {
+		$("#wishsender").text('from: '+config.sender);
+	}
+	$("#wish").show();
+}
+});
+</script>
+</body>
+</html>

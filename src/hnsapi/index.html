@@ -1,10 +1,10 @@
 <!DOCTYPE html><html lang="en" dir="ltr"><head><meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
 <title>Homenet Spaces API UI</title>
-<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.6/jquery.min.js"></script>
-<script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.14/jquery-ui.min.js"></script>
 <link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.14/themes/ui-lightness/jquery.ui.all.css">
-<script src="http://hns.netai.net/init.js"></script>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.6/jquery.min.js"></script>
+<script src="http://api.hns.netai.net/init.js"></script>
+<script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.14/jquery-ui.min.js"></script>
 <style>
 body { font-family: "trebuchet ms","helvetica","arial","verdana","sans-serif"; font-size: 12pt; overflow-y: scroll; }
 .clearfix:after { clear: both; content: " "; display: block; font-size: 0; height: 0; line-height: 0; visibility: hidden; width: 0; }
@@ -69,35 +69,27 @@ header h1:after{ content: "Homenet Spaces API UI"; color: rgb(63,63,63); }
 <div class="search">Search Users<input type="text" id="search"><div id="suggestcontainer"><div><div id="suggest"></div></div></div></div>
 <div class="user_id">User Id's<input type="text" id="user_id" placeholder="1,3,160 or 1-200"></div>
 <div class="submit"><input type="submit" value="Get JSON" id="getJSON"></div>
+<div id="hns-login-button">HnS Login</div>
 </div>
 <div id="output"></div>
 <div id="hidden"></div>
 <script>
 var dC = {
-	"protocol": window.location.protocol+"//",
-	"domain": "localhost",
-	"dir": "/homenetspaces/",
+	"ajaxurl": "http://hns.netai.net/homenetspaces/",
 	"url": "json.php",
 	"fields": [],
 	"json": {}
 };
 
-$.ajax({
-	url: "http://agerst.webs.com/hnsapi/ip.html",
-	type: "GET",
-	dataType: "html",
-	success: function(result) {
-		alert(result);
-	}
-});
-
 $(document).ready(function() {
+HNS.init({"apikey":"hnsapi"});
+
 function outputWidth() {
 	$("div.member, div.member img").width(Math.max(($(document.body).width()/5)-32));
 }
 
 function getJSON() {
-	$.ajax({type:"GET",url:dC.protocol+dC.domain+dC.dir+dC.url,dataType:"jsonp",timeout:5000,data:{id:$.trim($("#user_id").val()),fields:encodeURI(dC.fields.join().toLowerCase().replace(/\s/g,"_")),apikey:"hnspi"},success:function(responseData) {
+	$.ajax({type:"GET",url:dC.ajaxurl+"json.php",dataType:"jsonp",timeout:5000,data:{id:$.trim($("#user_id").val()),fields:encodeURI(dC.fields.join().toLowerCase().replace(/\s/g,"_")),apikey:"hnspi"},success:function(responseData) {
 		if (responseData) {
 			if (!responseData.error) {
 				dC.json = responseData;
@@ -132,7 +124,7 @@ function outputData() {
 
 $("#search").keyup(function() {
 	if ($.trim(this.value) != "") {
-		$.ajax({type:"GET",url:dC.protocol+dC.domain+dC.dir+"suggest2.php",data:{q:this.value,apikey:"hnsapi"},dataType:"html",timeout:5000,success:function(responseData) {
+		$.ajax({type:"GET",url:dC.ajaxurl+"suggest2.php",data:{q:this.value,apikey:"hnsapi"},dataType:"html",timeout:5000,success:function(responseData) {
 			if (responseData) {
 				$("#suggestcontainer").show();
 				$("#suggest").html(responseData);
@@ -175,4 +167,3 @@ String.prototype.capitalize = function() {
 </script>
 </body>
 </html>
-

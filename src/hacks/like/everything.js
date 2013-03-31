@@ -1,10 +1,10 @@
-var sad = document.getElementsByTagName('button'), happy = [], halt = false;
+var sad = document.getElementsByTagName('span'), happy = [], halt = false;
 
 for (var i = 0; i < sad.length; i++) {
-	if (sad[i] && hasClass(sad[i], 'like_link')) {
-		var sad_likebutton = sad[i].getElementsByTagName('span');
+	if (sad[i] && hasClass(sad[i], 'UIActionLinks')) {
+		var sad_likebutton = sad[i].getElementsByTagName('a');
 		for (var j = 0; j < sad_likebutton.length; j++) {
-			if (sad_likebutton[j] && hasClass(sad_likebutton[j], 'default_message') && sad_likebutton[j].style.display != 'none') happy.push(sad[i]);
+			if (sad_likebutton[j] && hasClass(sad_likebutton[j], 'UFILikeLink') && sad_likebutton[j].style.display != 'none') happy.push(sad_likebutton[j]);
 		}
 	}
 }

@@ -35,4 +35,5 @@ function haltFn() {
 	halt = true;
 	return false;
 }
+
 happyFn(happy);

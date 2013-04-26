@@ -203,13 +203,13 @@ $(document).ready(function(){
 		}
 	});
 
-	$("article > header #createcontact").live('click',function(){
+	$("article > header #createcontact").on('click',function(){
 		// Check for search content and seach results length. if not empty and results = 0 use term as name.
 		var len = aC.contacts.push({"name":"","number":"","email":""});
 		$("ul#contacts").prepend(addContact(len,true)).find("li:first").fadeIn();
 	});
 
-	$("ul#contacts li").live('click',function(){
+	$("ul#contacts li").on('click',function(){
 		$(this).find('.details').slideToggle('fast');
 		if ($(this).find('.more').is(":visible")) {
 			$(this).find('.more').hide().parent().find('.less').show();
@@ -218,11 +218,11 @@ $(document).ready(function(){
 		}
 	});
 
-	$("ul#contacts li .details").live('click',function(){
+	$("ul#contacts li .details").on('click',function(){
 		return false;
 	});
 
-	$("ul#contacts li .save").live('click',function(){
+	$("ul#contacts li .save").on('click',function(){
 		var id = $(this).parents('li').attr('id').substring(8);
 		alert(id);
 		$.post(link, {id:id,name:name,phone:phone,email:email}, function(repsonse) {
@@ -230,7 +230,7 @@ $(document).ready(function(){
 		});
 	});
 
-	$("ul#contacts li .delete").live('click',function(){
+	$("ul#contacts li .delete").on('click',function(){
 		var name = $(this).parents('li').find('#name').val();
 		if (confirm("Are you sure you want to delete "+name+"?")) alert(name+" deleted :/");
 		return false;

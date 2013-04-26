@@ -2,10 +2,7 @@
 session_start();
 header('Access-Control-Allow-Origin: *');
 
-define('MYSQL_HOST','localhost');
-define('MYSQL_USER','');
-define('MYSQL_PASSWORD','');
-define('MYSQL_DATABASE','hns');
+require_once 'mysql.config.php';
 if (!$con = mysql_connect(MYSQL_HOST,MYSQL_USER,MYSQL_PASSWORD)) throw new Exception('Error connecting to the server');
 if (!mysql_select_db(MYSQL_DATABASE,$con)) throw new Exception('Error selecting database');
 

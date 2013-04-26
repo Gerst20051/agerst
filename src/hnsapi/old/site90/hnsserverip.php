@@ -1,8 +1,6 @@
 <?php
 header('Access-Control-Allow-Origin: *');
-$api_dev_key = '';
-$api_user_name = urlencode('gerst20051');
-$api_user_password = urlencode('');
+require 'config.php';
 $api_paste_name = urlencode('Server IP Address');
 $api_results_limit = '50';
 

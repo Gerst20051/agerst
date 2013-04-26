@@ -1,10 +1,7 @@
 <?php
+require 'config.php';
+
 $ip = file_get_contents('http://whatismyip.org/');
-
-$api_dev_key = '';
-$api_user_name = urlencode('');
-$api_user_password = urlencode('');
-
 $ch = curl_init('http://pastebin.com/api/api_login.php');
 curl_setopt($ch, CURLOPT_POST, true);
 curl_setopt($ch, CURLOPT_POSTFIELDS, 'api_dev_key='.$api_dev_key.'&api_user_name='.$api_user_name.'&api_user_password='.$api_user_password.'');

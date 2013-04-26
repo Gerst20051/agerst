@@ -1,0 +1,52 @@
+https://developers.facebook.com/docs/reference/api/
+https://developers.facebook.com/docs/reference/api/user/
+https://graph.facebook.com/68310606562?metadata=1
+
+Friends: 		https://graph.facebook.com/me/friends
+News feed: 		https://graph.facebook.com/me/home
+Profile feed (Wall): 	https://graph.facebook.com/me/feed
+Likes: 			-https://graph.facebook.com/me/likes
+Movies: 		-https://graph.facebook.com/me/movies
+Music: 			-https://graph.facebook.com/me/music
+Books: 			-https://graph.facebook.com/me/books
+Notes: 			https://graph.facebook.com/me/notes
+Permissions: 		https://graph.facebook.com/me/permissions
+Photo Tags: 		-https://graph.facebook.com/me/photos
+Photo Albums: 		https://graph.facebook.com/me/albums
+Video Tags: 		-https://graph.facebook.com/me/videos
+Video Uploads: 		https://graph.facebook.com/me/videos/uploaded
+Events: 		-https://graph.facebook.com/me/events
+Groups: 		-https://graph.facebook.com/me/groups
+Checkins: 		-https://graph.facebook.com/me/checkins
+
+Read Permissions
+
+user_about_me			friends_about_me
+user_activities			-friends_activities
+user_birthday			-friends_birthday
+user_checkins			-friends_checkins
+user_education_history		-friends_education_history
+user_events			-friends_events
+user_groups			-friends_groups
+user_hometown			-friends_hometown
+user_interests			-friends_interests
+user_likes			-friends_likes
+user_location			-friends_location
+user_notes			friends_notes
+user_online_presence		-friends_online_presence
+user_photo_video_tags		-friends_photo_video_tags
+user_photos			friends_photos
+user_relationships		-friends_relationships
+user_relationship_details	-friends_relationship_details
+user_religion_politics		-friends_religion_politics
+user_status			friends_status
+user_videos			friends_videos
+user_website			friends_website
+user_work_history		friends_work_history
+read_friendlists		not available
+read_insights			not available
+read_mailbox			not available
+read_requests			not available
+read_stream			not available
+xmpp_login			not available
+ads_management			not available

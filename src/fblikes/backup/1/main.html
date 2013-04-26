@@ -1,0 +1,101 @@
+<html> 
+<head> 
+<title>Likes</title> 
+<script>
+	var itemList = new Array();
+	var itemListSorted = new Array();
+	var friendCount = 0;
+	function showItems() {
+		alert(itemList.length);
+	}
+	function compareItems(itemA, itemB) {
+		if (itemA.name === itemB.name) return 0;
+		if (itemA.name > itemB.name) return 1;
+		return -1;
+	}
+	function popularItems(itemA, itemB) {
+		return itemB.mCount - itemA.mCount;
+	}
+	function data_fetch_postproc() {
+		document.getElementById('test').innerHTML = "Generating recommendations ... ";
+		itemList.sort(compareItems);
+		mCtr = 0;
+		for (i=0; i<itemList.length; i++) {
+			var count = 0;
+			itemListSorted[mCtr] = itemList[i];
+			for (j=i; j<itemList.length; j++) {
+				if (itemList[i].name === itemList[j].name) count++;
+				else break;
+			}
+			i = i+count-1;
+			itemListSorted[mCtr++].mCount = count;
+		}
+		var maxResults = 100;
+		if (itemListSorted.length < 100) maxResults = itemListSorted.length;
+		itemListSorted.sort(popularItems);
+		document.getElementById('test').innerHTML = "";
+		for(i=0; i<maxResults; i++) {
+			var newDiv = document.createElement("div");
+			newDiv.id = itemListSorted[i].id;
+			newDiv.innerHTML = itemListSorted[i].name + ' : Likes - ' + itemListSorted[i].mCount;
+			document.getElementById("items").appendChild(newDiv);
+			FB.api('/'+itemListSorted[i].id, function(response) {
+				var newDiv = document.createElement("DIV");
+				newDiv.innerHTML = "<img src='"+response.picture+"'></img><br/>";
+				if (response.link) {
+					newDiv.innerHTML+= "<a href='"+response.link+"'>"+response.link+"</a><br/>";
+					newDiv.innerHTML+= '<iframe src="http://www.facebook.com/plugins/like.php?href='+response.link+'&amp;layout=standard&amp;show_faces=true&amp;width=450&amp;action=like&amp;colorscheme=light&amp;height=80" scrolling="no" frameborder="0" style="border:none; overflow:hidden; width:450px; height:80px;" allowTransparency="true"></iframe><br/>';
+				}
+				document.getElementById(response.id).appendChild(newDiv);
+			});
+		}
+	}
+	function get_friend_likes() {
+		document.getElementById('test').innerHTML = "Requesting data from Facebook ... ";
+		FB.api('/me/friends', function(response) {
+				friendCount = response.data.length;
+				for(i=0; i<response.data.length; i++) {
+					friendId = response.data[i].id;
+					FB.api('/'+friendId+'/ITEMS', function(response) {
+						itemList = itemList.concat(response.data);
+						friendCount--;
+						document.getElementById('test').innerHTML = friendCount + " friends to go ... ";
+						if (friendCount === 0) data_fetch_postproc();
+					});
+				} 
+			});
+	}
+</script> 
+</head> 
+<body> 
+<div id="fb-root"></div> 
+<div id="login"></div> 
+<div id="test"></div> 
+<div id="items"></div> 
+<script src="http://connect.facebook.net/en_US/all.js"></script> 
+<script> 
+FB.init({
+	appId: '131794546903024',
+	status: true,
+	cookie: true,
+	xfbml: true
+});
+FB.Event.subscribe('auth.sessionChange', function(response) {
+	window.location.reload();
+});
+FB.getLoginStatus(function(response) {
+	if (response.session) {
+		// logged in and connected user, someone you know
+		get_friend_likes();
+		document.getElementById('login').innerHTML
+			='<a href="#" onclick="FB.logout();">Logout</a><br/>';
+	} else {
+		document.getElementById('login').innerHTML
+			='<fb:login-button show-faces="true" width="200"' 
+			+ ' max-rows="1" perms="user_likes, friends_likes">'
+			+ '</fb:login-button>';
+		FB.XFBML.parse();
+	}
+});
+</script> 
+</html>

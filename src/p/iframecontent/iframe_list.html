@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<title>iFrame Website Viewer</title>
+<meta http-equiv="content-type" content="text/html;charset=utf-8"/>
+<meta http-equiv="content-language" content="en"/>
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.6/jquery.min.js"></script>
+<script type="text/javascript" src="http://www.webtoolkit.info/djs/webtoolkit.base64.js"></script>
+<style>
+body{font:12pt arial #000}
+#main{margin:0 auto}
+#output div{float:left;height:300px;margin:10px;width:400px}
+iframe{height:100%;margin:5px;width:100%}
+</style>
+</head>
+<body>
+<div id="main">
+<div id="header"><span class="title">iFrame Content</span><div class="options"><select size="4" multiple="multiple"></select></div></div>
+<div id="panel"><div id="output"></div></div>
+</div>
+<script>
+function getHash(){return decodeURIComponent(window.location.hash.substring(1))}
+function clearHash(){window.location.replace("#")}
+function setHash(hash){window.location.replace("#"+encodeURI(hash))}
+
+var bm = {
+	'http://www.cnn.com': 'CNN',
+	'http://fiverr.com': 'Fiverr',
+	'http://www.microsoft.com': 'Microsoft',
+	'http://hnsyoutube.webs.com': 'HnS YouTube Instant'
+};
+
+$(document).ready(function(){
+$.each(bm,function(val,txt){
+	$("select").append(new Option(txt,val));
+});
+$("select").change(function(){
+	$("#output").empty();
+	$("select option:selected").each(function(){
+		$("<div/>").attr('class','resizeMe').html($("<iframe/>").attr('src',$(this).val())).appendTo('#output');
+	});
+}).trigger('change');
+});
+</script>
+</body>
+</html>

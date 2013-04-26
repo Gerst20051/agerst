@@ -1,0 +1,42 @@
+<!DOCTYPE html><html lang="en" dir="ltr"><head><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<title>Convert and Download json2csv</title>
+<meta name="description" content="Convert and Download json2csv!">
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7/jquery.min.js"></script>
+<script type="text/javascript" src="http://www.webtoolkit.info/djs/webtoolkit.base64.js"></script>
+</head>
+<body>
+<textarea id="string" style="height:300px;width:300px"/></textarea>
+<input type="submit" id="convert" value="Convert json2csv"/>
+<script>
+function convert(objArray){
+	var array = typeof objArray != 'object' ? $.parseJSON(objArray) : objArray;
+	var str = '';
+
+	for (var i = 0; i < array.length; i++){
+		var line = '';
+		for (var index in array[i]){
+			if (line != '') line += ','
+			line += array[i][index];
+		}
+
+		str += line + '\r\n';
+	}
+
+	if (navigator.appName != 'Microsoft Internet Explorer'){
+		window.open('data:text/csv;charset=utf-8;base64,' + Base64.encode(str));
+		//window.open('data:text/csv;charset=utf-8,' + escape(str));
+	} else {
+		var popup = window.open('','csv','');
+		popup.document.body.innerHTML = '<pre>' + str + '</pre>';
+	}
+}
+
+$(document).ready(function(){
+$("#convert").click(function(){
+	convert($("#string").val());
+});
+});
+</script>
+</body>
+</html>
